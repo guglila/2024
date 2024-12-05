@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcolo Ore Lavorative (Dark Mode)</title>
+    <style>
+        /* Dark mode styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #f1f1f1;
+            margin: 0;
+            padding: 0 20px;
+        }
+        h2, h3, label {
+            color: #f1f1f1;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #1e1e1e;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #2c2c2c;
+        }
+        input, select, button {
+            background-color: #2c2c2c;
+            color: #f1f1f1;
+            border: 1px solid #444;
+            padding: 5px;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        button {
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #444;
+        }
+    </style>
+</head>
+<body>
+    <h2>Calcolo Ore Lavorative - Dark Mode</h2>
+    <label for="month-picker">Seleziona il mese:</label>
+    <input type="month" id="month-picker">
+    <button onclick="generateRows()">Genera Calendario</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Giorno</th>
+                <th>Entrata (hh:mm)</th>
+                <th>Uscita (hh:mm)</th>
+                <th>Ore Lavorate</th>
+            </tr>
+        </thead>
+        <tbody id="work-schedule">
+            <!-- Le righe saranno generate dinamicamente -->
+        </tbody>
+    </table>
+
+    <label for="day-filter">Seleziona i giorni della settimana da includere:</label>
+    <select id="day-filter" class="filter-select" multiple>
+        <option value="Lunedì">Lunedì</option>
+        <option value="Martedì">Martedì</option>
+        <option value="Mercoledì">Mercoledì</option>
+        <option value="Giovedì">Giovedì</option>
+        <option value="Venerdì">Venerdì</option>
+        <option value="Sabato">Sabato</option>
+        <option value="Domenica">Domenica</option>
+    </select>
+    <button onclick="calculateTotal()">Calcola Ore Totali</button>
+    <h3>Totale Ore Lavorate: <span id="total-hours">0:00</span></h3>
+
+    <script>
+        // Imposta il valore predefinito del mese al mese precedente
+        document.addEventListener("DOMContentLoaded", () => {
+            const today = new Date();
+            const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1);
+            const monthString = previousMonth.toISOString().slice(0, 7); // YYYY-MM
+            document.getElementById("month-picker").value = monthString;
+            generateRows();
+        });
+
+        // Funzione per generare le righe del calendario
+        function generateRows() {
+            const tbody = document.getElementById("work-schedule");
+            tbody.innerHTML = ""; // Resetta le righe esistenti
+
+            const monthInput = document.getElementById("month-picker").value;
+            if (!monthInput) return;
+
+            const [year, month] = monthInput.split("-").map(Number);
+            const daysInMonth = new Date(year, month, 0).getDate();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month - 1, day);
+                const weekday = date.toLocaleDateString('it-IT', { weekday: 'long' });
+
+                const row = `
+                    <tr>
+                        <td>${date.toLocaleDateString('it-IT')}</td>
+                        <td>${weekday}</td>
+                        <td><input type="time" class="start-time"></td>
+                        <td><input type="time" class="end-time"></td>
+                        <td class="hours-worked">0:00</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            }
+        }
+
+        // Funzione per calcolare le ore totali
+        function calculateTotal() {
+            const rows = document.querySelectorAll("#work-schedule tr");
+            const selectedDays = Array.from(document.getElementById("day-filter").selectedOptions).map(option => option.value);
+            let totalMinutes = 0;
+
+            rows.forEach(row => {
+                const day = row.cells[1].textContent;
+                const startTimeInput = row.querySelector(".start-time").value;
+                const endTimeInput = row.querySelector(".end-time").value;
+
+                if (selectedDays.length === 0 || selectedDays.includes(day)) {
+                    if (startTimeInput && endTimeInput) {
+                        const [startHours, startMinutes] = startTimeInput.split(":").map(Number);
+                        const [endHours, endMinutes] = endTimeInput.split(":").map(Number);
+
+                        const startTotalMinutes = startHours * 60 + startMinutes;
+                        const endTotalMinutes = endHours * 60 + endMinutes;
+                        const workedMinutes = Math.max(endTotalMinutes - startTotalMinutes, 0);
+
+                        row.querySelector(".hours-worked").textContent = `${Math.floor(workedMinutes / 60)}:${(workedMinutes % 60).toString().padStart(2, "0")}`;
+                        totalMinutes += workedMinutes;
+                    } else {
+                        row.querySelector(".hours-worked").textContent = "0:00";
+                    }
+                } else {
+                    row.querySelector(".hours-worked").textContent = "0:00";
+                }
+            });
+
+            const totalHours = Math.floor(totalMinutes / 60);
+            const remainingMinutes = totalMinutes % 60;
+            document.getElementById("total-hours").textContent = `${totalHours}:${remainingMinutes.toString().padStart(2, "0")}`;
+        }
+    </script>
+</body>
+</html>
